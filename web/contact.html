@@ -1,0 +1,158 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <head>
+    <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>联系我们 | 北京天潞科技有限公司</title><link rel="stylesheet" href="assets/styles.css"></head>
+<body data-page="contact">
+<header id="site-header">
+</header>
+
+<main class="container">
+  <section class="content-side">
+    <div style="text-transform: uppercase; letter-spacing: 0.25em; font-size: 0.7rem; opacity: 0.4; margin-bottom: 16px; font-weight: 700;">Get in Touch</div>
+    <h2>驱动数字化<br><span class="italic">转型新引擎</span></h2>
+    <p class="lead">按意向程度提交需求，我们会根据分层机制在24小时内调和专业顾问跟进。</p>
+    
+    <div style="margin-top: 48px; display: grid; gap: 24px;">
+      <div>
+        <div style="font-size: 0.65rem; text-transform: uppercase; opacity: 0.4; font-weight: 700;">业务咨询</div>
+        <div style="font-weight: 500;">+86 (010) 8888 6666</div>
+      </div>
+      <div>
+        <div style="font-size: 0.65rem; text-transform: uppercase; opacity: 0.4; font-weight: 700;">官方邮箱</div>
+        <div style="font-weight: 500;">contact@tianlu.tech</div>
+      </div>
+    </div>
+  </section>
+
+  <section class="form-side">
+    <div class="form-card">
+      <form id="leadForm">
+        <div class="form-group">
+          <label>咨询意向类型</label>
+          <select name="intent" required>
+            <option value="low">免费咨询 (低门槛)</option>
+            <option value="mid">下载方案资料 (高级顾问)</option>
+            <option value="high">预约演示/上门沟通 (高意向)</option>
+          </select>
+        </div>
+
+        <div class="grid-fields">
+          <div class="form-group">
+            <label>您的姓名</label>
+            <input type="text" name="name" placeholder="姓名" required>
+          </div>
+          <div class="form-group">
+            <label>联系电话</label>
+            <input type="tel" name="phone" placeholder="手机或座机" required>
+          </div>
+        </div>
+
+        <div class="grid-fields">
+          <div class="form-group">
+            <label>公司名称</label>
+            <input type="text" name="company" placeholder="您的企业名称" required>
+          </div>
+          <div class="form-group">
+            <label>电子邮箱</label>
+            <input type="email" name="email" placeholder="xxx@company.com">
+          </div>
+        </div>
+
+        <div class="grid-fields">
+          <div class="form-group">
+            <label>预算范围</label>
+            <select name="budget">
+              <option>暂不确定</option>
+              <option>10万以内</option>
+              <option>10-30万</option>
+              <option>30-100万</option>
+              <option>100万以上</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>计划启动时间</label>
+            <select name="timeline">
+              <option>1个月内</option>
+              <option>1-3个月</option>
+              <option>3-6个月</option>
+              <option>6个月以上</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label>需求描述</label>
+          <textarea name="requirement" rows="4" placeholder="请简要描述您的业务场景或面临的挑战..."></textarea>
+        </div>
+
+        <button type="submit" class="btn-submit" id="submitBtn">
+          <span class="loading-spinner"></span>
+          <span class="btn-text">提交意向需求</span>
+        </button>
+
+        <div id="status-msg"></div>
+      </form>
+    </div>
+  </section>
+</main>
+
+
+
+<footer>
+  <div class="container">
+    © 2026 BEIJING TIANLU TECHNOLOGY CO., LTD. | 京ICP备88888888号
+  </div>
+</footer>
+<div id="floating-cta" class="float-cta"></div>
+<script src="assets/layout.js"></script><script src="assets/main.js"></script>
+
+<!-- 引入 Axios -->
+<script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+
+<script>
+  const BACKEND_URL = 'https://igrv77suih.sealoshzh.site/contact';
+  const form = document.getElementById('leadForm');
+  const btn = document.getElementById('submitBtn');
+  const statusMsg = document.getElementById('status-msg');
+
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    
+    // UI 状态更新
+    btn.classList.add('is-loading');
+    btn.disabled = true;
+    statusMsg.className = '';
+    statusMsg.textContent = '';
+
+    // 获取数据
+    const formData = new FormData(form);
+    const payload = Object.fromEntries(formData.entries());
+
+    try {
+      // 发送请求
+      const response = await axios.post(BACKEND_URL, payload);
+      
+      const data = response.data;
+
+      // 这里的判定逻辑根据 Laf 云函数习惯做了兼容
+      if (data.ok || data.code === 200 || data.success) {
+        statusMsg.textContent = '提交成功！我们的专家顾问将尽快联系您。';
+        statusMsg.className = 'msg-success';
+        form.reset();
+      } else {
+        throw new Error(data.msg || data.error || '提交失败，请重试');
+      }
+    } catch (err) {
+      console.error(err);
+      statusMsg.textContent = err.response?.data?.msg || err.response?.data?.error || err.message || '网络连接错误，请稍后再试';
+      statusMsg.className = 'msg-error';
+    } finally {
+      btn.classList.remove('is-loading');
+      btn.disabled = false;
+    }
+  });
+</script>
+
+</body>
+</html>

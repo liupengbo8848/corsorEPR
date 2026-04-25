@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>联系我们 | 北京天潞科技有限公司</title><link rel="stylesheet" href="assets/styles.css"></head>
+<body data-page="contact">
+<header id="site-header"></header>
+<main class="container">
+<section><h2>联系我们</h2><p class="lead">按意向程度提交需求，我们会分层跟进。</p>
+<form data-lead-form>
+<label>咨询类型
+<select name="intent" required>
+<option value="low">免费咨询（低门槛）</option>
+<option value="mid">下载方案资料（中门槛）</option>
+<option value="high">预约演示/上门沟通（高意向）</option>
+</select>
+</label>
+<label>姓名<input name="name" required></label>
+<label>公司<input name="company" required></label>
+<label>电话<input name="phone" required></label>
+<label>邮箱<input name="email"></label>
+<label>预算范围
+<select name="budget"><option>暂不确定</option><option>10万以内</option><option>10-30万</option><option>30-100万</option><option>100万以上</option></select>
+</label>
+<label>计划启动时间
+<select name="timeline"><option>1个月内</option><option>1-3个月</option><option>3-6个月</option><option>6个月以上</option></select>
+</label>
+<label>需求描述<textarea name="requirement"></textarea></label>
+<div class="btn-row"><button class="btn btn-primary" type="submit" data-track="submit_lead">提交需求</button></div>
+</form>
+</section>
+</main>
+<footer id="site-footer"></footer>
+<div id="floating-cta" class="float-cta"></div>
+<script src="assets/layout.js"></script><script src="assets/main.js"></script>
+</body></html>

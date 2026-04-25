@@ -1,0 +1,224 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>天潞科技 | 后台数据管理</title>
+    <!-- 引入资源 -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Playfair+Display:ital,wght@0,400;0,500;0,600;1,400&display=swap');
+        body { font-family: 'Inter', sans-serif; background-color: #F5F2ED; color: #1a1a1a; scroll-behavior: smooth; }
+        .font-serif { font-family: 'Playfair Display', serif; }
+        .glass-card { background: rgba(255, 255, 255, 0.8); backdrop-filter: blur(10px); border: 1px solid rgba(26, 26, 26, 0.05); }
+    </style>
+</head>
+<body class="min-h-screen">
+
+    <!-- 登录锁定层 -->
+    <div id="login-overlay" class="fixed inset-0 z-[100] bg-[#F5F2ED] flex items-center justify-center p-6">
+        <div class="max-w-md w-full glass-card rounded-[2.5rem] p-10 shadow-2xl text-center">
+            <div class="w-20 h-20 bg-[#1a1a1a] rounded-3xl flex items-center justify-center mx-auto mb-6 shadow-lg rotate-3">
+                <i data-lucide="lock" class="text-white w-10 h-10"></i>
+            </div>
+            <h2 class="text-3xl font-serif font-light mb-2 tracking-tighter">管理员认证</h2>
+            <p class="text-sm opacity-40 mb-8 font-medium uppercase tracking-widest">Secure Access Only</p>
+            
+            <div class="space-y-4">
+                <input type="password" id="admin-password" placeholder="请输入查询密码" 
+                    class="w-full px-6 py-4 bg-white/50 border border-transparent rounded-2xl focus:border-[#1a1a1a]/20 focus:bg-white outline-none transition-all text-center text-lg tracking-widest">
+                <button onclick="verifyAccess()" id="login-btn"
+                    class="w-full bg-[#1a1a1a] text-white py-5 rounded-2xl font-bold uppercase tracking-[0.2em] hover:bg-black transition-all shadow-lg active:scale-95">
+                    进入管理系统
+                </button>
+            </div>
+            <div id="error-msg" class="mt-4 text-red-500 text-xs font-bold hidden"></div>
+        </div>
+    </div>
+
+    <!-- 数据面板 (验证通后后显示) -->
+    <div id="dashboard" class="hidden">
+        <header class="h-24 bg-white/80 backdrop-blur-md sticky top-0 z-50 border-b border-[#1a1a1a]/5">
+            <div class="max-w-7xl mx-auto px-6 h-full flex items-center justify-between">
+                <div class="flex items-center gap-4">
+                    <div class="w-10 h-10 bg-[#1a1a1a] rounded-xl flex items-center justify-center text-white font-bold">T</div>
+                    <div class="hidden sm:block">
+                        <div class="text-sm font-serif font-bold tracking-tight">天潞科技 - Admin</div>
+                        <div class="text-[9px] uppercase tracking-widest opacity-40">Business Intelligence Terminal</div>
+                    </div>
+                </div>
+                <div class="flex gap-4">
+                    <button onclick="refreshLeads()" class="p-3 bg-white border border-[#1a1a1a]/5 rounded-xl hover:bg-[#1a1a1a] hover:text-white transition-all shadow-sm">
+                        <i data-lucide="refresh-cw" class="w-5 h-5"></i>
+                    </button>
+                    <button onclick="location.reload()" class="px-6 py-3 bg-[#1a1a1a] text-white text-xs font-bold uppercase tracking-widest rounded-xl shadow-lg">退出</button>
+                </div>
+            </div>
+        </header>
+
+        <main class="max-w-7xl mx-auto px-6 py-16">
+            <div class="mb-12">
+                <div class="text-[10px] uppercase font-bold tracking-[0.3em] text-[#1a1a1a]/30 mb-2">Lead Insights</div>
+                <h2 class="text-5xl font-serif font-light tracking-tighter">
+                    共监测到 <span id="leads-count" class="italic underline decoration-1 text-[#1a1a1a]">0</span> 条有效意向
+                </h2>
+            </div>
+
+            <div id="leads-list" class="grid grid-cols-1 gap-6">
+                <!-- 动态卡片 -->
+                <div class="py-20 text-center opacity-20 italic">正在同步云端数据...</div>
+            </div>
+        </main>
+    </div>
+
+    <script>
+        // 配置：请确保地址与你的 Laf 云函数路径完全一致
+        const API_URL = 'https://igrv77suih.sealoshzh.site/contact_user';
+        let savedPwd = '';
+
+        // 初始化 Lucide 图标
+        lucide.createIcons();
+
+        // 验证进入
+        async function verifyAccess() {
+            const pwd = document.getElementById('admin-password').value;
+            const btn = document.getElementById('login-btn');
+            const errorDiv = document.getElementById('error-msg');
+
+            if(!pwd) return;
+
+            btn.disabled = true;
+            btn.innerHTML = '<span class="animate-pulse">验证中...</span>';
+            errorDiv.classList.add('hidden');
+
+            try {
+                const res = await axios.post(API_URL, { password: pwd });
+                
+                if (res.data.ok) {
+                    savedPwd = pwd;
+                    document.getElementById('login-overlay').style.display = 'none';
+                    document.getElementById('dashboard').classList.remove('hidden');
+                    renderData(res.data.data);
+                } else {
+                    showError(res.data.error || '验证失败，请重新输入');
+                }
+            } catch (err) {
+                console.error('API Error:', err);
+                showError('连接服务器失败，由于：' + (err.response?.data?.error || err.message));
+            } finally {
+                btn.disabled = false;
+                btn.innerText = '进入系统';
+            }
+        }
+
+        // 刷新列表
+        async function refreshLeads() {
+            const btn = document.querySelector('[onclick="refreshLeads()"]');
+            btn.classList.add('animate-spin');
+            try {
+                const res = await axios.post(API_URL, { password: savedPwd });
+                if (res.data.ok) renderData(res.data.data);
+            } finally {
+                setTimeout(() => btn.classList.remove('animate-spin'), 500);
+            }
+        }
+
+        function showError(msg) {
+            const errorDiv = document.getElementById('error-msg');
+            errorDiv.innerText = msg;
+            errorDiv.classList.remove('hidden');
+        }
+
+        // 渲染数据
+        function renderData(leads) {
+            const container = document.getElementById('leads-list');
+            const countSpan = document.getElementById('leads-count');
+            
+            countSpan.innerText = leads.length;
+
+            if (leads.length === 0) {
+                container.innerHTML = `
+                    <div class="bg-white rounded-[2rem] p-24 text-center border border-dashed border-[#1a1a1a]/10">
+                        <p class="text-sm opacity-30 font-medium">暂时没有捕获到任何业务咨询数据</p>
+                    </div>
+                `;
+                return;
+            }
+
+            container.innerHTML = leads.map(lead => {
+                // 自动处理日期格式
+                const time = new Date(lead.createdAt || Date.now()).toLocaleString('zh-CN', {
+                    month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit'
+                });
+
+                // 这里是关键：请检查你的字段名是否与这里一致 (lead.name, lead.company 等)
+                return `
+                <div class="bg-white rounded-[2.5rem] p-8 md:p-10 shadow-sm border border-[#1a1a1a]/5 hover:shadow-xl hover:-translate-y-1 transition-all duration-500 group">
+                    <div class="grid grid-cols-1 md:grid-cols-4 gap-10">
+                        <div class="space-y-4">
+                            <div class="flex items-center gap-3">
+                                <div class="w-8 h-8 bg-black/5 rounded-lg flex items-center justify-center text-[#1a1a1a]/30">
+                                    <i data-lucide="user" class="w-4 h-4"></i>
+                                </div>
+                                <span class="text-xl font-bold tracking-tight">${lead.name || '未命名'}</span>
+                            </div>
+                            <div class="space-y-2 opacity-60">
+                                <div class="flex items-center gap-2 text-sm"><i data-lucide="building-2" class="w-4 h-4"></i> ${lead.company || '--'}</div>
+                                <div class="flex items-center gap-2 text-sm"><i data-lucide="phone" class="w-4 h-4"></i> ${lead.phone || '--'}</div>
+                            </div>
+                        </div>
+
+                        <div>
+                            <div class="text-[10px] font-bold uppercase tracking-widest opacity-20 mb-4">Intent & Status</div>
+                            <div class="inline-flex items-center px-4 py-2 rounded-full text-[10px] font-bold uppercase tracking-widest ${getStatusStyle(lead.intent)}">
+                                ${getIntentLabel(lead.intent)}
+                            </div>
+                            <div class="mt-4 text-xs font-medium space-y-1 opacity-50">
+                                <div>预算: ${lead.budget || '未选'}</div>
+                                <div>排期: ${lead.timeline || '未选'}</div>
+                            </div>
+                        </div>
+
+                        <div class="md:col-span-2 bg-[#F9F9F8] p-8 rounded-[1.5rem] relative group-hover:bg-[#1a1a1a] group-hover:text-white transition-colors duration-500">
+                            <div class="text-[10px] font-bold uppercase tracking-widest opacity-20 mb-3 block">Requirements Detail</div>
+                            <p class="text-sm leading-relaxed italic opacity-80 line-clamp-4">
+                                "${lead.requirement || '客户留言为空'}"
+                            </p>
+                        </div>
+                    </div>
+                    
+                    <div class="mt-8 pt-8 border-t border-[#1a1a1a]/5 flex justify-between items-center">
+                        <div class="flex items-center gap-4 text-[10px] font-bold tracking-tighter opacity-25 uppercase">
+                            <span>Time: ${time}</span>
+                            <span class="hidden sm:inline">|</span>
+                            <span>Ref: ${lead._id ? lead._id.slice(-6).toUpperCase() : 'LOCAL'}</span>
+                        </div>
+                        <div class="flex gap-2">
+                            <a href="tel:${lead.phone}" class="p-2 text-[#1a1a1a]/20 hover:text-[#1a1a1a] transition-colors"><i data-lucide="phone-call" class="w-4 h-4"></i></a>
+                            <a href="mailto:${lead.email}" class="p-2 text-[#1a1a1a]/20 hover:text-[#1a1a1a] transition-colors"><i data-lucide="mail" class="w-4 h-4"></i></a>
+                        </div>
+                    </div>
+                </div>
+                `;
+            }).join('');
+
+            lucide.createIcons();
+        }
+
+        // 样式辅助函数
+        function getStatusStyle(intent) {
+            if (intent === 'high') return 'bg-red-500 text-white';
+            if (intent === 'mid') return 'bg-blue-500 text-white';
+            return 'bg-green-500 text-white';
+        }
+
+        function getIntentLabel(intent) {
+            if (intent === 'high') return '预约演示/紧急';
+            if (intent === 'mid') return '获取方案/中等';
+            return '免费咨询/常规';
+        }
+    </script>
+</body>
+</html>
